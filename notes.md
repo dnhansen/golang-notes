@@ -26,7 +26,7 @@ where `syscall.Stdout` is just `1` and `os.NewFile` has return type `*os.File`. 
 The `io.Writer` type is defined as follows:
 
     type Writer interface {
-    	Write(p []byte) (n int, err error)
+        Write(p []byte) (n int, err error)
     }
 
 Hence, a `Writer` is something that can be *written to*, not something that *itself writes*. It thus follows the [naming convention](https://go.dev/doc/effective_go#interface-names) that one-method interfaces are named by the method name plus the suffix '-er'.
@@ -51,8 +51,45 @@ As far as I can tell the `io.Writer` interface is not implemented by the `io` pa
 
 We give some examples of structs that implement and interfaces that extend `io.Writer`:
 
+- Standard output `os.Stdout` as described above.
+
 - The `io.Writer` interface is for instance extended by the interface `net.Conn`, which is the return type of `net.Dial` used both in TCP, UDP and IP networks.
 
 - The type `*bytes.Buffer` implements `io.Writer`. Notice that it is the *pointer type* and not `bytes.Buffer` that implements `io.Writer`. This is not an issue when calling a method on such a struct (since a method is bound to its receiver base type, in this case `bytes.Buffer`, and is visible inside selectors for both this type and the corresponding pointer type), but when given as an argument to a function (e.g. `fmt.Fprintln`) it must be of the correct type, namely `*bytes.Buffer`.
 
 - [TODO: Buffered writers?]
+
+
+### Readers
+
+The `io.Reader` interface is defined
+
+    type Reader interface {
+        Read(p []byte) (n int, err error)
+    }
+
+The intention is that the `Read` method reads something into the slice `p`. Since a slice is in effect a pointer to an array, it can be modified in place without passing a pointer to `Read`. The following program demonstrates this behaviour using the implementation `strings.Reader`:
+
+    package main
+
+    import (
+        "fmt"
+        "strings"
+    )
+
+    func main() {
+        reader := strings.NewReader("Hello world")
+        b := make([]byte, 11)
+        reader.Read(b)
+        fmt.Println(b)
+    }
+
+This will output
+
+    [72 101 108 108 111 32 119 111 114 108 100]
+
+which is a slice containing the Unicode code points (in Go terminology the *runes*) of the characters in the string `"Hello world"`. To recover the string we may apply the function `string` to `b`.
+
+[TODO: `io.ReadAll`.]
+
+[TODO: Standard input, buffered readers, connections and other implementations.]
