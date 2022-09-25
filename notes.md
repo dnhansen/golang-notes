@@ -29,10 +29,30 @@ The `io.Writer` type is defined as follows:
     	Write(p []byte) (n int, err error)
     }
 
+Hence, a `Writer` is something that can be *written to*, not something that *itself writes*. It thus follows the [naming convention](https://go.dev/doc/effective_go#interface-names) that one-method interfaces are named by the method name plus the suffix '-er'.
+
 This is the type accepted by functions such as `fmt.Fprintln` which is called by `fmt.Println`:
 
+    func Fprintln(w io.Writer, a ...any) (n int, err error) {
+        // ...
+    }
+    
     func Println(a ...any) (n int, err error) {
         return Fprintln(os.Stdout, a...)
     }
 
-In particular, `os.Stdout` must implement the `Writer` interface. [TODO: How does it acquire this method?]
+In particular, `os.Stdout` must implement the `io.Writer` interface, i.e. have a `Write` method (the implementation of this method is of course also OS-specific). And we may indeed use `Write` to print to standard output:
+
+    os.Stdout.Write([]byte("Hello world!\n")) // prints "Hello world!" to terminal
+
+Here we of course must first convert the string `"Hello world!\n"` to the type `[]byte`.
+
+As far as I can tell the `io.Writer` interface is not implemented by the `io` package; instead the purpose of the `io` package is simply to provide interfaces to I/O primitives for other packages to implement.
+
+We give some examples of structs that implement and interfaces that extend `io.Writer`:
+
+- The `io.Writer` interface is for instance extended by the interface `net.Conn`, which is the return type of `net.Dial` used both in TCP, UDP and IP networks.
+
+- The type `*bytes.Buffer` implements `io.Writer`. Notice that it is the *pointer type* and not `bytes.Buffer` that implements `io.Writer`. This is not an issue when calling a method on such a struct (since a method is bound to its receiver base type, in this case `bytes.Buffer`, and is visible inside selectors for both this type and the corresponding pointer type), but when given as an argument to a function (e.g. `fmt.Fprintln`) it must be of the correct type, namely `*bytes.Buffer`.
+
+- [TODO: Buffered writers?]
