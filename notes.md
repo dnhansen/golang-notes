@@ -79,17 +79,21 @@ The intention is that the `Read` method reads something into the slice `p`. Sinc
 
     func main() {
         reader := strings.NewReader("Hello world")
-        b := make([]byte, 11)
-        reader.Read(b)
-        fmt.Println(b)
+        p := make([]byte, 11)
+        reader.Read(p)
+        fmt.Println(p)
     }
 
 This will output
 
     [72 101 108 108 111 32 119 111 114 108 100]
 
-which is a slice containing the Unicode code points (in Go terminology the *runes*) of the characters in the string `"Hello world"`. To recover the string we may apply the function `string` to `b`.
+which is a slice containing the Unicode code points (in Go terminology the *runes*) of the characters in the string `"Hello world"`. To recover the string we may apply the function `string` to `p`, or we may use `fmt.Printf("%s\n", p)` to print the string instead.
 
-[TODO: `io.ReadAll`.]
+The `io` package also provides the function
+
+    func ReadAll(r Reader) ([]byte, error)
+
+which reads until an error or EOF, taking care of resizing the slice `p` so that the entire contents of `r` is read. Notice that it is the `io` package which provides this function, so it is implemented only in terms of the `Read` method of `r`.
 
 [TODO: Standard input, buffered readers, connections and other implementations.]
