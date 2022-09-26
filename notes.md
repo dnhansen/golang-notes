@@ -114,4 +114,43 @@ Examples of readers:
 
 - The interface `net.Conn` also extends `io.Reader` (as it did `io.Writer`).
 
-[TODO: Standard input, buffered readers, connections and other implementations.]
+
+### Scanners
+
+The `Scanner` type is provided by the `bufio` package:
+
+    type Scanner struct {
+        r            io.Reader // The reader provided by the client.
+        split        SplitFunc // The function to split the tokens.
+        maxTokenSize int       // Maximum size of a token; modified by tests.
+        token        []byte    // Last token returned by split.
+        buf          []byte    // Buffer used as argument to split.
+        start        int       // First non-processed byte in buf.
+        end          int       // End of data in buf.
+        err          error     // Sticky error.
+        empties      int       // Count of successive empty tokens.
+        scanCalled   bool      // Scan has been called; buffer is in use.
+        done         bool      // Scan has finished.
+    }
+
+We usually use the `bufio.NewScanner` function to create scanners:
+
+    func NewScanner(r io.Reader) *Scanner {
+        return &Scanner{
+        r:            r,
+        split:        ScanLines,
+        maxTokenSize: MaxScanTokenSize,
+        }
+    }
+
+The method `Scan` is used to scan the reader `r`, placing the next token in the `token` field of the `Scanner`, after which the `Text` method can be called to return `token`. The `Scan` method in turn calls the split function stored in the `split` field. Such split functions have the type
+
+    type SplitFunc func(data []byte, atEOF bool) (advance int, token []byte, err error)
+
+so a split function simply returns the next token, and `Scan` in turn saves it in the `token` field.
+
+The default split function is `ScanLines`, which returns each line of text, stripped by trailing end-of-line markers (both `"\r\n"` and `"\n"`). An EOF also returns a line of text even if it doesn't contain a newline. Other split functions provided by `bufio` are `SplitBytes` (which returns individual bytes) and `SplitRunes` (which returns runes, i.e. Unicode code points). Another split function is `ScanWords`, which returns words separated by Unicode white space characters (e.g. `' '`, `'\n'`, `'\r'`).
+
+The split function may be assigned to a scanner using the method `Split`.
+
+[TODO: When to use scanners instead of readers. Scanners and `net.Conn`?]
