@@ -20,6 +20,8 @@ In Go the type `os.File` (a struct whose implementation is OS-specific) is used 
 
 where `syscall.Stdout` is just `1` and `os.NewFile` has return type `*os.File`. (Of course the implementation of `os.NewFile` is also OS-specific since its return type is.)
 
+We will return to file I/O below.
+
 
 ### Writers
 
@@ -154,3 +156,29 @@ The default split function is `ScanLines`, which returns each line of text, stri
 The split function may be assigned to a scanner using the method `Split`.
 
 [TODO: When to use scanners instead of readers. Scanners and `net.Conn`?]
+
+
+### File I/O
+
+The generalised way of opening a file is the `io` function
+
+    func OpenFile(name string, flag int, perm FileMode) (*File, error)
+
+where `name` is the file path, `flag` is a combination of flags, and `perm` is the mode with which to open the file (i.e. which permissions should be given). The following flags are possible:
+
+| Flag       | Value    | Meaning                                     |
+|------------|---------:|---------------------------------------------|
+| `O_RDONLY` | 0x0      | Open the file read-only.                    |
+| `O_WRONLY` | 0x1      | Open the file write-only.                   |
+| `O_RDWR`   | 0x2      | Open the file read-write.                   |
+| `O_APPEND` | 0x400    | Append data to the file when writing.       |
+| `O_CREATE` | 0x40     | Create a new file if none exists.           |
+| `O_EXCL`   | 0x80     | Used with `O_CREATE`, file must not exist.  |
+| `O_SYNC`   | 0x101000 | Open for synchronous I/O.                   |
+| `O_TRUNC`  | 0x200    | Truncate regular writable file when opened. |
+
+Of these, exactly one of the first three must be specified, and the remaining flags may be or'ed in to control behaviour. Notice that apart from `O_RDONLY` and `O_WRONLY`, each flag have `1`s in different bits.
+
+The `io` package provides functions `Open` (using the single flag `O_RDONLY`) and `Create` (with flags `O_RDWR|O_CREATE|O_TRUNC`) as user-friendly alternatives, both defined in terms of `OpenFile`. To append to a file using the functions provided by `io`, it seems like using `OpenFile` is necessary.
+
+The `*os.File` type implements both `io.Reader` and `io.Writer`. (The methods `Read` and `Write` are defined in terms of OS-specific helper functions.) Hence we may use all the above methods to read from and write to files, given the right permissions. Notice that the behaviour of `Write` depends on the flags given to `OpenFile`: the flag `O_APPEND` being included or not determines whether the contents of the write should overwrite the existing content of the file (if any) or be appended to the file.
