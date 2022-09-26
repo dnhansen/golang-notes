@@ -96,4 +96,22 @@ The `io` package also provides the function
 
 which reads until an error or EOF, taking care of resizing the slice `p` so that the entire contents of `r` is read. Notice that it is the `io` package which provides this function, so it is implemented only in terms of the `Read` method of `r`.
 
+Examples of readers:
+
+- Standard input, `os.Stdin`. Its `Read` method reads from standard input (usually the terminal) until the slice `p` is full, or until the end of the input. If the input (include the line feed at the end of the input) is strictly smaller than `len(p)`, then the remaining entries in `p` are filled with zeros (`0` being the Unicode code point for the null character). If the input is larger than `len(p)`, then the remaining input seems to be buffered by the terminal, and subsequent calls to `Read` will read from the buffer.
+  
+  If we use `io.ReadAll` to read from the terminal, then we must manually insert an EOF by typing CTRL+D.
+
+- The package `bufio` implements `io.Reader` in the type `bufio.Reader`, which has the constructor
+  
+      func NewReader(rd io.Reader) *Reader
+  
+  The package provides several methods on `bufio.Reader`, including
+  
+      func (b *Reader) ReadString(delim byte) (string, error)
+  
+  which reads until the first occurrence of `delim` in the input, and returns a string containing the data up to and including `delim`. If called on `bufio.NewReader(os.Stdin)` and the input contains multiple occurrences of `delim` (e.g. if `delim` is a space, since the input is only sent to the method when pressing enter), then it again seems like the remaining input is buffered and read on subsequent calls to `ReadString`.
+
+- The interface `net.Conn` also extends `io.Reader` (as it did `io.Writer`).
+
 [TODO: Standard input, buffered readers, connections and other implementations.]
