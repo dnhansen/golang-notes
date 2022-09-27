@@ -182,3 +182,85 @@ Of these, exactly one of the first three must be specified, and the remaining fl
 The `io` package provides functions `Open` (using the single flag `O_RDONLY`) and `Create` (with flags `O_RDWR|O_CREATE|O_TRUNC`) as user-friendly alternatives, both defined in terms of `OpenFile`. To append to a file using the functions provided by `io`, it seems like using `OpenFile` is necessary.
 
 The `*os.File` type implements both `io.Reader` and `io.Writer`. (The methods `Read` and `Write` are defined in terms of OS-specific helper functions.) Hence we may use all the above methods to read from and write to files, given the right permissions. Notice that the behaviour of `Write` depends on the flags given to `OpenFile`: the flag `O_APPEND` being included or not determines whether the contents of the write should overwrite the existing content of the file (if any) or be appended to the file.
+
+
+## Variables
+
+Consider the following Go program:
+
+    package main
+
+    import (
+        "fmt"
+    )
+
+    func main() {
+        var x int
+        x = 0
+        {
+            var x int
+            x = 1
+            fmt.Println(x)  // Prints 1
+        }
+        fmt.Println(x)      // Prints 0
+    }
+
+There are two variable declarations, both of which are assigned the identifier `x`. Since the declarations lie in different blocks this is permitted, and the inner declaration of `x` shadows the outer declaration, so the assignment `x = 1` in the inner block will not affect the outer variable.
+
+Consider now this modification, where the declaration and assignment in the inner block have been interchanged:
+
+    package main
+
+    import (
+        "fmt"
+    )
+
+    func main() {
+        var x int
+        x = 0
+        {
+            x = 1
+            var x int
+            fmt.Println(x)  // Prints 0
+        }
+        fmt.Println(x)      // Prints 1
+    }
+
+When performing the assignment `x = 1` the inner version of `x` has not yet been declared, so here `x` refers to the outer version. This is then modified by the assignment, so `1` is printed at the end. The inner print statement prints `0` since this is the zero value for integers.
+
+Now consider the analogous JavaScript program:
+
+    let x
+    x = 0
+    {
+      let x
+      x = 1
+      console.log(x)
+    }
+    console.log(x)
+
+This has exactly the same behaviour as the first Go program, first printing `1` and then `0`. But switching the declaration and assignment in the inner block yields an error:
+
+    ReferenceError: Cannot access 'x2' before initialization
+        at <anonymous>:5:6
+        at dn (<anonymous>:16:5449)
+
+This error occurs because (in JavaScript terminology) the environment record of the inner block is initialised with all local variables that are declared in this block, including `x`, but these initially have no value (not even `undefined`, they are listed as having not been initialised). When trying to perform the assignment `x = 1` if `x` is not yet declared, the identifier `x` does *not* refer to the outer but rather the inner version of `x`, the one that has not yet been initialised.
+
+Something similar occurs in the following Python program:
+
+    def f():
+        x = 1
+        print(x)
+
+    x = 0
+    f()         // Prints 1
+    print(x)    // Prints 0
+
+Since Python (as far as I know?) doesn't let one create lexical blocks in the same way as Go or JavaScript does, we use a function to create an inner block instead. The above program indeed has the same I/O behaviour as the Go and JavaScript programs from before. But switching the assignment `x = 1` and the `print` statement inside the function body produces an error:
+
+    UnboundLocalError: local variable 'x' referenced before assignment
+
+Of course in Python we do not declare variables prior to assigning to them, but the moral is the same. Python and JavaScript behave slightly different than Go regarding declaration of (or assignment to) local variables.
+
+[TODO: Understand Go's runtime semantics. How does the analogue of JavaScript's environment records work?]
